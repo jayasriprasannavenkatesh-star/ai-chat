@@ -30,25 +30,25 @@ function localReply(messages) {
 }
 
 app.post('/api/chat', async (req, res) => {
+  const messages = Array.isArray(req.body?.messages) ? req.body.messages : [];
+  const safeMessages = messages
+    .filter(m => m && ['user', 'assistant'].includes(m.role) && typeof m.content === 'string')
+    .slice(-20)
+    .map(m => ({ role: m.role, content: m.content.slice(0, 12000) }));
+
+  if (!client) return res.json({ text: localReply(safeMessages), mode: 'offline-fallback' });
+
   try {
-    const messages = Array.isArray(req.body.messages) ? req.body.messages : [];
-    const safeMessages = messages
-      .filter(m => m && ['user', 'assistant'].includes(m.role) && typeof m.content === 'string')
-      .slice(-20)
-      .map(m => ({ role: m.role, content: m.content.slice(0, 12000) }));
-
-    if (!client) return res.json({ text: localReply(safeMessages), mode: 'offline-fallback' });
-
     const response = await client.responses.create({
       model: process.env.OPENAI_MODEL || 'gpt-5.6-luna',
       instructions: 'You are AI Chat, a helpful, concise, friendly assistant. Use Markdown when useful. Never reveal secrets or API keys.',
       input: safeMessages,
       max_output_tokens: 1200
     });
-    res.json({ text: response.output_text || 'I could not generate a response.', mode: 'online' });
+    return res.json({ text: response.output_text || 'I could not generate a response.', mode: 'online' });
   } catch (error) {
-    console.error(error);
-    res.json({ text: localReply(messages), mode: 'offline-fallback' });
+    console.error('AI provider error:', error?.message || error);
+    return res.json({ text: localReply(safeMessages), mode: 'offline-fallback' });
   }
 });
 
