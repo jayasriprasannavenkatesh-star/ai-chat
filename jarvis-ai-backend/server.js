@@ -44,12 +44,12 @@ app.use("/chat", (req, res, next) => {
 });
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "jarvis-ai-backend", model: MODEL });
+  res.json({ ok: true, service: "jarvis-ai-backend", model: MODEL, aiConfigured: Boolean(process.env.OPENAI_API_KEY) });
 });
 
 app.post("/chat", async (req, res) => {
   try {
-    const { message, approvedMemory = "", history = [] } = req.body ?? {};
+    if (!process.env.OPENAI_API_KEY) {\n      return res.status(503).json({ error: "JARVIS AI is not activated yet. Add OPENAI_API_KEY in Render Environment settings, then redeploy." });\n    }\n    const { message, approvedMemory = "", history = [] } = req.body ?? {};
     if (typeof message !== "string" || !message.trim()) {
       return res.status(400).json({ error: "Please provide a message." });
     }
