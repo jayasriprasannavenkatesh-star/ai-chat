@@ -1,0 +1,30 @@
+name: Build JARVIS Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "jarvis-android/**"
+      - ".github/workflows/build-jarvis-android.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Build debug APK
+        working-directory: jarvis-android
+        run: gradle :app:assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-debug-apk
+          path: jarvis-android/app/build/outputs/apk/debug/app-debug.apk
