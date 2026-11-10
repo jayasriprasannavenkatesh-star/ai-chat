@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07111f"><title>JARVIS — Personal AI</title>
+<style>
+:root{color-scheme:dark;--bg:#07111f;--panel:#0e1b2d;--line:#1d3550;--cyan:#59d5ff;--muted:#91a7bd;--white:#eef8ff}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -10%,#12385a 0,transparent 55%),var(--bg);color:var(--white);font:15px system-ui,-apple-system,Segoe UI,sans-serif;min-height:100vh}
+.wrap{max-width:900px;margin:auto;padding:22px 16px 28px;min-height:100vh;display:flex;flex-direction:column}
+header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:8px 0 18px}
+.brand{display:flex;gap:12px;align-items:center}.logo{width:46px;height:46px;border:1px solid #34799b;border-radius:50%;display:grid;place-items:center;color:var(--cyan);box-shadow:0 0 28px #1d9dca55;font-size:23px}
+h1{font-size:20px;letter-spacing:.18em;margin:0}small,.muted{color:var(--muted)}.status{font-size:12px;border:1px solid var(--line);border-radius:30px;padding:7px 11px}
+.hero{text-align:center;padding:25px 0 15px}.orb{width:128px;height:128px;margin:4px auto 15px;border-radius:50%;border:1px solid #2a799a;display:grid;place-items:center;background:radial-gradient(circle,#14476a,#091727 68%);box-shadow:0 0 50px #1b9cc555,inset 0 0 35px #2b8db544}.orb span{font-size:48px;color:var(--cyan);text-shadow:0 0 25px #59d5ff}.hero h2{margin:5px 0;font-size:21px}.hero p{margin:5px;color:var(--muted);font-size:13px}
+.chat{flex:1;min-height:250px;max-height:48vh;overflow:auto;border:1px solid var(--line);border-radius:18px;background:#091523aa;padding:14px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:86%;padding:12px 14px;border-radius:16px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}.bot{align-self:flex-start;background:#12263a;border:1px solid #21415d}.user{align-self:flex-end;background:#10405b;border:1px solid #26739a}
+.controls{padding-top:14px}.inputrow{display:flex;gap:8px}.inputrow input{min-width:0;flex:1;background:#0e1b2d;border:1px solid var(--line);border-radius:14px;color:white;padding:14px;font:inherit;outline:none}.inputrow input:focus{border-color:var(--cyan)}
+button{border:1px solid #34799b;background:#10334a;color:white;border-radius:13px;padding:12px 15px;font:600 14px system-ui;cursor:pointer}button.primary{background:linear-gradient(135deg,#1379a4,#16506d);border-color:#3aa6ce}button:disabled{opacity:.5;cursor:default}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.actions button{flex:1;min-width:100px}.toggle{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin-top:10px}
+footer{text-align:center;color:#71889e;font-size:11px;padding-top:16px}.notice{font-size:12px;color:#b7c8d8;margin-top:9px}
+@media(min-width:650px){.wrap{padding-top:30px}.chat{max-height:50vh}.hero{padding:35px 0 22px}}
+</style></head>
+<body><main class="wrap">
+<header><div class="brand"><div class="logo">◉</div><div><h1>J.A.R.V.I.S</h1><small>PERSONAL AI ASSISTANT</small></div></div><div class="status" id="status">● Connecting…</div></header>
+<section class="hero"><div class="orb"><span>✧</span></div><h2>At your service.</h2><p>Talk naturally in Tamil · English · Tanglish</p></section>
+<section class="chat" id="chat" aria-live="polite"><div class="msg bot">Vanakkam! I am JARVIS. How can I help you today?</div></section>
+<section class="controls"><div class="inputrow"><input id="prompt" autocomplete="off" placeholder="Message JARVIS…" maxlength="6000"><button class="primary" id="send">Send</button></div>
+<div class="actions"><button id="mic">🎙 Speak</button><button id="stop">■ Stop voice</button><button id="clear">Clear chat</button></div>
+<label class="toggle"><input id="speak" type="checkbox" checked> Speak JARVIS replies aloud</label>
+<div class="notice" id="notice">Voice recognition depends on your browser. On Android, open this page in Chrome and allow microphone access.</div></section>
+<footer>JARVIS AI · Live web assistant · Keep private keys and OTPs out of chat.</footer>
+</main>
+<script>
+const chat=document.getElementById('chat'),input=document.getElementById('prompt'),sendBtn=document.getElementById('send'),statusEl=document.getElementById('status'),notice=document.getElementById('notice');
+let history=[],busy=false,recognition=null;
+function add(text,who){const el=document.createElement('div');el.className='msg '+who;el.textContent=text;chat.appendChild(el);chat.scrollTop=chat.scrollHeight;return el}
+function speak(text){if(!('speechSynthesis'in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const lang=/[அ-ஹ]/.test(text)?'ta-IN':'en-IN';u.lang=lang;u.rate=1; speechSynthesis.speak(u)}
+async function check(){try{const r=await fetch('/health');if(!r.ok)throw 0;statusEl.textContent='● Server online';statusEl.style.color='#72e2a8'}catch{statusEl.textContent='● Server unavailable';statusEl.style.color='#ff9b9b'}}
+async function send(){const message=input.value.trim();if(!message||busy)return;input.value='';add(message,'user');busy=true;sendBtn.disabled=true;const pending=add('JARVIS is thinking…','bot');try{const r=await fetch('/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message,history})});const data=await r.json();if(!r.ok)throw new Error(data.error||'Request failed');pending.textContent=data.reply;history.push({role:'user',content:message},{role:'assistant',content:data.reply});history=history.slice(-10);if(document.getElementById('speak').checked)speak(data.reply)}catch(e){pending.textContent='I could not reply: '+e.message}finally{busy=false;sendBtn.disabled=false;input.focus();chat.scrollTop=chat.scrollHeight}}
+sendBtn.addEventListener('click',send);input.addEventListener('keydown',e=>{if(e.key==='Enter')send()});
+document.getElementById('stop').onclick=()=>speechSynthesis?.cancel();
+document.getElementById('clear').onclick=()=>{history=[];chat.innerHTML='<div class="msg bot">Chat cleared. Vanakkam! How can I help?</div>';speechSynthesis?.cancel()};
+document.getElementById('mic').onclick=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){notice.textContent='Speech recognition is not supported here. Try Chrome on Android.';return}if(recognition){recognition.stop();recognition=null}recognition=new SR();recognition.lang='ta-IN';recognition.interimResults=false;recognition.onstart=()=>notice.textContent='Listening… speak now';recognition.onerror=e=>notice.textContent='Microphone error: '+e.error+'. Check browser permission.';recognition.onend=()=>{if(notice.textContent==='Listening… speak now')notice.textContent='Voice input stopped.'};recognition.onresult=e=>{input.value=e.results[0][0].transcript;notice.textContent='Recognized. Press Send to talk to JARVIS.'};try{recognition.start()}catch(e){notice.textContent='Could not start microphone. Try again.'}};
+check();
+</script></body></html>
